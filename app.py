@@ -252,35 +252,29 @@ def dashboard():
     def q(sql, *args):
         return conn.execute(sql, args).fetchone()[0]
 
-    # Filtros dinâmicos - com prefixo de tabela pra evitar ambiguidade em JOINs
+    # Filtros dinâmicos
+    e_filter = "AND empresa_id=?" if eid else ""
+    p_filter = "AND posto_id=?" if pid else ""
     e_val = (eid,) if eid else ()
     ep_val = (eid, pid) if (eid and pid) else (eid,) if eid else ()
 
-    def ef(tabela=''):
-        prefix = f"{tabela}." if tabela else ""
-        return f"AND {prefix}empresa_id=?" if eid else ""
-    def pf(tabela=''):
-        prefix = f"{tabela}." if tabela else ""
-        return f"AND {prefix}posto_id=?" if pid else ""
-
     stats = {
-        'visitantes_hoje':   q(f"SELECT COUNT(*) FROM visitantes WHERE DATE(entrada)=? {ef()} {pf()}", hoje, *ep_val),
-        'dentro_agora':      q(f"SELECT COUNT(*) FROM visitantes WHERE saida IS NULL AND entrada IS NOT NULL {ef()} {pf()}", *ep_val),
-        'veiculos_fora':     q(f"SELECT COUNT(*) FROM registros_frota WHERE chegada IS NULL AND saida IS NOT NULL {ef('rf') if eid else ''}", *e_val) if True else 0,
-        'vigilantes_ativos': q(f"SELECT COUNT(*) FROM vigilantes WHERE ativo=1 {ef()} {pf()}", *ep_val),
-        'aso_vencendo':      q(f"SELECT COUNT(*) FROM vigilantes WHERE aso_validade <= date('now','+30 days') AND ativo=1 {ef()}", *e_val),
-        'porte_vencendo':    q(f"SELECT COUNT(*) FROM vigilantes WHERE porte_arma=1 AND porte_validade <= date('now','+60 days') AND ativo=1 {ef()}", *e_val),
+        'visitantes_hoje': q(f"SELECT COUNT(*) FROM visitantes WHERE DATE(entrada)=? {e_filter} {p_filter}", hoje, *ep_val),
+        'dentro_agora':    q(f"SELECT COUNT(*) FROM visitantes WHERE saida IS NULL AND entrada IS NOT NULL {e_filter} {p_filter}", *ep_val),
+        'veiculos_fora':   q(f"SELECT COUNT(*) FROM registros_frota WHERE chegada IS NULL AND saida IS NOT NULL {e_filter}", *e_val),
+        'vigilantes_ativos': q(f"SELECT COUNT(*) FROM vigilantes WHERE ativo=1 {e_filter} {p_filter}", *ep_val),
+        'aso_vencendo':    q(f"SELECT COUNT(*) FROM vigilantes WHERE aso_validade <= date('now','+30 days') AND ativo=1 {e_filter}", *e_val),
+        'porte_vencendo':  q(f"SELECT COUNT(*) FROM vigilantes WHERE porte_arma=1 AND porte_validade <= date('now','+60 days') AND ativo=1 {e_filter}", *e_val),
     }
 
-    vis_sql = f"SELECT * FROM visitantes WHERE saida IS NULL AND entrada IS NOT NULL {ef()} {pf()} ORDER BY entrada DESC LIMIT 10"
+    vis_sql = f"SELECT * FROM visitantes WHERE saida IS NULL AND entrada IS NOT NULL {e_filter} {p_filter} ORDER BY entrada DESC LIMIT 10"
     visitantes_ativos = conn.execute(vis_sql, ep_val).fetchall()
 
-    frota_e_filter = f"AND rf.empresa_id=?" if eid else ""
     frota_sql = f"""SELECT rf.*, v.placa, v.modelo, vig.nome as motorista
         FROM registros_frota rf
         JOIN veiculos v ON v.id=rf.veiculo_id
         JOIN vigilantes vig ON vig.id=rf.motorista_id
-        WHERE rf.chegada IS NULL AND rf.saida IS NOT NULL {frota_e_filter}
+        WHERE rf.chegada IS NULL AND rf.saida IS NOT NULL {e_filter}
         ORDER BY rf.saida DESC"""
     frota_ativa = conn.execute(frota_sql, e_val).fetchall()
 
@@ -306,8 +300,8 @@ def portaria():
     cfg = get_empresa_config(eid)
     postos = conn.execute("SELECT * FROM postos WHERE empresa_id=? AND ativo=1",(eid,)).fetchall() if eid else []
 
-    e_filter = "WHERE v.empresa_id=?" if eid else "WHERE 1=1"
-    p_filter = " AND v.posto_id=?" if pid else ""
+    e_filter = "WHERE empresa_id=?" if eid else "WHERE 1=1"
+    p_filter = " AND posto_id=?" if pid else ""
     vals = [eid] if eid else []
     if pid: vals.append(pid)
 
@@ -373,7 +367,7 @@ def frota():
     conn = get_db()
     eid = current_empresa()
     cfg = get_empresa_config(eid)
-    e_filter = "WHERE v.empresa_id=? AND v.ativo=1" if eid else "WHERE v.ativo=1"
+    e_filter = "WHERE empresa_id=? AND ativo=1" if eid else "WHERE ativo=1"
     vals = (eid,) if eid else ()
 
     veiculos = conn.execute(f"SELECT v.*, p.nome as posto_nome FROM veiculos v LEFT JOIN postos p ON p.id=v.posto_id {e_filter}", vals).fetchall()
