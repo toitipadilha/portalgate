@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+{% block title %}Controle de Frota{% endblock %}
+{% block page_title %}<i class="fas fa-truck" style="color:var(--yellow);margin-right:8px"></i> Controle de Frota{% endblock %}
+
+{% block content %}
+
+<!-- Cards de status dos veículos -->
+<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:16px; margin-bottom:24px;">
+{% for v in veiculos %}
+  {% set em_uso = namespace(val=false) %}
+  {% for r in registros %}
+    {% if r.veiculo_id == v.id and not r.chegada and r.saida %}
+      {% set em_uso.val = true %}
+    {% endif %}
+  {% endfor %}
+  <div class="card" style="margin:0;">
+    <div class="card-body">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+        <div>
+          <div style="font-size:18px; font-weight:700; font-family:'JetBrains Mono',monospace; color:var(--accent)">{{ v.placa }}</div>
+          <div style="font-size:13px; color:var(--muted)">{{ v.marca }} {{ v.modelo }} {{ v.ano }}</div>
+        </div>
+        {% if em_uso.val %}
+          <span class="badge bg-yellow"><i class="fas fa-circle" style="font-size:6px"></i> Em uso</span>
+        {% else %}
+          <span class="badge bg-green"><i class="fas fa-circle" style="font-size:6px"></i> Disponível</span>
+        {% endif %}
+      </div>
+      <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--muted);">
+        <span><i class="fas fa-gauge"></i> {{ '{:,.0f}'.format(v.km_atual) }} km</span>
+        <span><i class="fas fa-palette"></i> {{ v.cor }}</span>
+        <span><i class="fas fa-tag"></i> {{ v.tipo }}</span>
+      </div>
+      {% if not em_uso.val %}
+      <button class="btn btn-primary btn-sm" style="width:100%; justify-content:center; margin-top:12px;"
+              onclick="abrirSaida({{ v.id }}, '{{ v.placa }}', '{{ v.modelo }}', {{ v.km_atual }})">
+        <i class="fas fa-arrow-right"></i> Registrar Saída
+      </button>
+      {% else %}
+      <button class="btn btn-ghost btn-sm" style="width:100%; justify-content:center; margin-top:12px;" disabled>
+        <i class="fas fa-lock"></i> Em campo
+      </button>
+      {% endif %}
+    </div>
+  </div>
+{% endfor %}
+</div>
+
+<!-- Registros em aberto -->
+{% set abertos = registros | selectattr('chegada', 'none') | list %}
+{% if abertos %}
+<div class="card" style="margin-bottom:20px;">
+  <div class="card-header">
+    <h3><i class="fas fa-location-dot" style="color:var(--yellow)"></i> Veículos em Campo</h3>
+    <span class="badge bg-yellow">{{ abertos|length }}</span>
+  </div>
+  <div class="card-body" style="padding:0;">
+    <table>
+      <thead><tr><th>Placa</th><th>Veículo</th><th>Motorista</th><th>Destino</th><th>Saída</th><th>KM Saída</th><th></th></tr></thead>
+      <tbody>
+      {% for r in registros %}
+        {% if not r.chegada and r.saida %}
+        <tr>
+          <td><strong style="font-family:'JetBrains Mono',monospace; color:var(--accent)">{{ r.placa }}</strong></td>
+          <td>{{ r.modelo }}</td>
+          <td>{{ r.motorista }}</td>
+          <td>{{ r.destino }}</td>
+          <td><span style="font-family:'JetBrains Mono',monospace; font-size:12px">{{ r.saida[11:16] if r.saida else '—' }}</span></td>
+          <td><span style="font-family:'JetBrains Mono',monospace">{{ '{:,.0f}'.format(r.km_saida) if r.km_saida else '—' }} km</span></td>
+          <td>
+            <button class="btn btn-success btn-sm" onclick="abrirChegada({{ r.id }}, '{{ r.placa }}', {{ r.km_saida or 0 }})">
+              <i class="fas fa-flag-checkered"></i> Chegada
+            </button>
+          </td>
+        </tr>
+        {% endif %}
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Histórico -->
+<div class="card">
+  <div class="card-header">
+    <h3><i class="fas fa-list" style="color:var(--muted)"></i> Histórico de Uso</h3>
+  </div>
+  <div class="card-body" style="padding:0;">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Placa</th><th>Motorista</th><th>Destino</th><th>Saída</th><th>Chegada</th><th>KM rodado</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for r in registros %}
+          {% if r.chegada %}
+          <tr>
+            <td><strong style="font-family:'JetBrains Mono',monospace; color:var(--accent)">{{ r.placa }}</strong> <span style="color:var(--muted); font-size:11px">{{ r.modelo }}</span></td>
+            <td>{{ r.motorista }}</td>
+            <td>{{ r.destino }}</td>
+            <td><span style="font-family:'JetBrains Mono',monospace; font-size:12px">{{ r.saida[8:10] }}/{{ r.saida[5:7] }} {{ r.saida[11:16] }}</span></td>
+            <td><span style="font-family:'JetBrains Mono',monospace; font-size:12px">{{ r.chegada[11:16] }}</span></td>
+            <td>
+              {% if r.km_saida and r.km_chegada %}
+                <span style="font-family:'JetBrains Mono',monospace; color:var(--green)">{{ '{:,.0f}'.format(r.km_chegada - r.km_saida) }} km</span>
+              {% else %}—{% endif %}
+            </td>
+            <td><span class="badge bg-muted">Concluído</span></td>
+          </tr>
+          {% endif %}
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Saída -->
+<div class="modal-overlay" id="modal-saida">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fas fa-arrow-right" style="color:var(--accent)"></i> Registrar Saída — <span id="modal-placa-label"></span></h3>
+      <button class="modal-close" onclick="fecharModal('modal-saida')">✕</button>
+    </div>
+    <form method="POST" action="/frota/saida">
+      <input type="hidden" name="veiculo_id" id="veiculo_id_input">
+
+      <div class="form-grid" style="margin-bottom:16px;">
+        <div class="form-group">
+          <label>Motorista *</label>
+          <select name="motorista_id" class="form-control" required>
+            <option value="">Selecione...</option>
+            {% for m in motoristas %}
+            <option value="{{ m.id }}">{{ m.nome }} ({{ m.cargo }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>KM de Saída *</label>
+          <input name="km_saida" id="km_saida_input" type="number" step="0.1" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>Destino *</label>
+          <input name="destino" class="form-control" placeholder="Cidade, local..." required>
+        </div>
+        <div class="form-group">
+          <label>Motivo</label>
+          <select name="motivo" class="form-control">
+            <option>Serviço externo</option>
+            <option>Entrega</option>
+            <option>Visita a cliente</option>
+            <option>Manutenção</option>
+            <option>Abastecimento</option>
+            <option>Outro</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section-title">Checklist de Saída</div>
+      <div class="checklist" style="margin-bottom:16px;">
+        <label class="check-item"><input type="checkbox" name="ch_combustivel" value="ok"> <span>Combustível OK</span></label>
+        <label class="check-item"><input type="checkbox" name="ch_pneus" value="ok"> <span>Pneus calibrados</span></label>
+        <label class="check-item"><input type="checkbox" name="ch_luzes" value="ok"> <span>Luzes funcionando</span></label>
+        <label class="check-item"><input type="checkbox" name="ch_documentos" value="ok"> <span>Documentos no veículo</span></label>
+        <label class="check-item"><input type="checkbox" name="ch_extintor" value="ok"> <span>Extintor no prazo</span></label>
+        <label class="check-item"><input type="checkbox" name="ch_triangulo" value="ok"> <span>Triângulo presente</span></label>
+      </div>
+      <div class="form-group" style="margin-bottom:16px;">
+        <label>Observações</label>
+        <input name="ch_obs" class="form-control" placeholder="Alguma avaria observada?">
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="fecharModal('modal-saida')">Cancelar</button>
+        <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane"></i> Confirmar Saída</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Chegada -->
+<div class="modal-overlay" id="modal-chegada">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fas fa-flag-checkered" style="color:var(--green)"></i> Registrar Chegada — <span id="chegada-placa-label"></span></h3>
+      <button class="modal-close" onclick="fecharModal('modal-chegada')">✕</button>
+    </div>
+    <form id="form-chegada">
+      <input type="hidden" id="chegada-rid">
+      <div class="form-grid" style="margin-bottom:16px;">
+        <div class="form-group">
+          <label>KM de Chegada *</label>
+          <input id="chegada-km" type="number" step="0.1" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>KM rodado (estimado)</label>
+          <input id="chegada-km-rodado" class="form-control" readonly style="color:var(--green);" placeholder="Preenchido automático">
+        </div>
+      </div>
+
+      <div class="section-title">Checklist de Chegada</div>
+      <div class="checklist" style="margin-bottom:16px;">
+        <label class="check-item"><input type="checkbox" name="ch_combustivel" value="ok"> <span>Abastecido</span></label>
+        <label class="check-item"><input type="checkbox" name="ch_pneus" value="ok"> <span>Pneus OK</span></label>
+        <label class="check-item"><input type="checkbox" name="ch_avarias" value="ok"> <span>Sem avarias</span></label>
+      </div>
+      <div class="form-group" style="margin-bottom:16px;">
+        <label>Observações / Ocorrências</label>
+        <input name="ch_obs" id="chegada-obs" class="form-control" placeholder="Relatar qualquer problema...">
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="fecharModal('modal-chegada')">Cancelar</button>
+        <button type="button" class="btn btn-success" onclick="confirmarChegada()"><i class="fas fa-check"></i> Confirmar Chegada</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let kmSaidaRef = 0;
+
+function abrirSaida(id, placa, modelo, km) {
+  document.getElementById('veiculo_id_input').value = id;
+  document.getElementById('modal-placa-label').textContent = placa + ' — ' + modelo;
+  document.getElementById('km_saida_input').value = km;
+  document.getElementById('modal-saida').classList.add('open');
+}
+
+function abrirChegada(rid, placa, kmSaida) {
+  kmSaidaRef = kmSaida;
+  document.getElementById('chegada-rid').value = rid;
+  document.getElementById('chegada-placa-label').textContent = placa;
+  document.getElementById('chegada-km').value = '';
+  document.getElementById('chegada-km-rodado').value = '';
+  document.getElementById('modal-chegada').classList.add('open');
+}
+
+document.getElementById('chegada-km').addEventListener('input', function() {
+  const km = parseFloat(this.value);
+  const rodado = km - kmSaidaRef;
+  document.getElementById('chegada-km-rodado').value = rodado > 0 ? rodado.toLocaleString('pt-BR') + ' km' : '';
+});
+
+async function confirmarChegada() {
+  const rid = document.getElementById('chegada-rid').value;
+  const km = document.getElementById('chegada-km').value;
+  const obs = document.getElementById('chegada-obs').value;
+  const form = document.getElementById('form-chegada');
+  const checks = form.querySelectorAll('input[type=checkbox]');
+
+  const data = new FormData();
+  data.append('km_chegada', km);
+  data.append('obs', obs);
+  checks.forEach(c => { if(c.checked) data.append(c.name, c.value); });
+
+  const r = await fetch(`/frota/chegada/${rid}`, { method:'POST', body: data });
+  const d = await r.json();
+  if (d.ok) { location.reload(); }
+}
+
+function fecharModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if(e.target === m) m.classList.remove('open'); });
+});
+</script>
+{% endblock %}

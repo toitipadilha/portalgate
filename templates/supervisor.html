@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Supervisor{% endblock %}
+{% block page_title %}<i class="fas fa-tower-observation" style="color:var(--accent)"></i> Visão do Supervisor{% endblock %}
+
+{% block content %}
+<div class="posto-grid">
+{% for r in resumo %}
+  <div class="posto-card">
+    <div class="posto-card-header">
+      <div>
+        <div class="posto-name">{{ r.posto.nome }}</div>
+        <div class="posto-client"><i class="fas fa-building"></i> {{ r.posto.cliente_nome or 'Sem cliente' }}</div>
+      </div>
+      <span class="badge bg-green"><i class="fas fa-circle" style="font-size:5px"></i> Ativo</span>
+    </div>
+    <div class="posto-stats">
+      <div class="posto-stat">
+        <div class="pval" style="color:var(--green)">{{ r.dentro }}</div>
+        <div class="plbl">Dentro agora</div>
+      </div>
+      <div class="posto-stat">
+        <div class="pval" style="color:var(--accent)">{{ r.hoje }}</div>
+        <div class="plbl">Entradas hoje</div>
+      </div>
+      <div class="posto-stat">
+        <div class="pval" style="color:var(--yellow)">{{ r.veiculos_fora }}</div>
+        <div class="plbl">Veículos fora</div>
+      </div>
+      <div class="posto-stat">
+        <div class="pval" style="color:var(--text)">{{ r.vigilantes }}</div>
+        <div class="plbl">Vigilantes</div>
+      </div>
+    </div>
+    <div style="margin-top:12px; display:flex; gap:6px;">
+      <a href="/portaria?pid={{ r.posto.id }}" class="btn btn-ghost btn-sm" style="flex:1; justify-content:center;">
+        <i class="fas fa-door-open"></i> Portaria
+      </a>
+      <a href="/portaria/historico?pid={{ r.posto.id }}" class="btn btn-ghost btn-sm" style="flex:1; justify-content:center;">
+        <i class="fas fa-list"></i> Histórico
+      </a>
+    </div>
+  </div>
+{% endfor %}
+</div>
+
+{% if aso_critico or porte_critico %}
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+  {% if aso_critico %}
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fas fa-triangle-exclamation" style="color:var(--red)"></i> ASO Crítico</h3>
+      <span class="badge bg-red">{{ aso_critico|length }}</span>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <table>
+        <thead><tr><th>Vigilante</th><th>Posto</th><th>Vencimento</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for v in aso_critico %}
+        <tr>
+          <td><strong>{{ v.nome }}</strong></td>
+          <td style="color:var(--muted); font-size:12px;">{{ v.posto_id or '—' }}</td>
+          <td style="font-family:'JetBrains Mono',monospace; font-size:12px;">{{ v.aso_validade }}</td>
+          <td>
+            {% if v.aso_validade < today %}
+              <span class="badge bg-red">Vencido</span>
+            {% else %}
+              <span class="badge bg-yellow">Vence em breve</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if porte_critico %}
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fas fa-shield-halved" style="color:var(--yellow)"></i> Porte de Arma Vencendo</h3>
+      <span class="badge bg-yellow">{{ porte_critico|length }}</span>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <table>
+        <thead><tr><th>Vigilante</th><th>Validade Porte</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for v in porte_critico %}
+        <tr>
+          <td><strong>{{ v.nome }}</strong></td>
+          <td style="font-family:'JetBrains Mono',monospace; font-size:12px;">{{ v.porte_validade }}</td>
+          <td><span class="badge bg-yellow"><i class="fas fa-clock"></i> Atenção</span></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% else %}
+<div class="card">
+  <div class="card-body" style="text-align:center; padding:32px; color:var(--muted);">
+    <i class="fas fa-shield-check" style="font-size:36px; color:var(--green); display:block; margin-bottom:10px;"></i>
+    <strong style="color:var(--text)">Tudo em dia!</strong><br>
+    Nenhum ASO ou porte vencido ou próximo do vencimento.
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Portaria{% endblock %}
+{% block page_title %}<i class="fas fa-door-open" style="color:var(--green);margin-right:8px"></i> Controle de Portaria{% endblock %}
+
+{% block content %}
+<div style="display:grid; grid-template-columns:380px 1fr; gap:20px; align-items:start;">
+
+  <!-- Painel de entrada -->
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <h3><i class="fas fa-plus" style="color:var(--green)"></i> Registrar Entrada</h3>
+      </div>
+      <div class="card-body">
+        <form method="POST" action="/portaria/entrada">
+          <div class="form-group" style="margin-bottom:12px">
+            <label>Nome Completo *</label>
+            <input name="nome" class="form-control" placeholder="Nome do visitante" required>
+          </div>
+          <div class="form-group" style="margin-bottom:12px">
+            <label>CPF / RG / Crachá</label>
+            <input name="documento" class="form-control" placeholder="Documento de identificação">
+          </div>
+          <div class="form-group" style="margin-bottom:12px">
+            <label>Empresa / Origem</label>
+            <input name="empresa" class="form-control" placeholder="Empresa ou cidade">
+          </div>
+          <div class="form-group" style="margin-bottom:12px">
+            <label>Destino / Setor</label>
+            <input name="destino" class="form-control" placeholder="Manutenção, TI, RH...">
+          </div>
+          <div class="form-group" style="margin-bottom:12px">
+            <label>Placa do Veículo</label>
+            <input name="placa_veiculo" class="form-control" placeholder="ABC-1234 (opcional)">
+          </div>
+          <div class="form-group" style="margin-bottom:16px">
+            <label>Motivo da Visita</label>
+            <select name="motivo" class="form-control">
+              <option value="">Selecione...</option>
+              <option>Manutenção</option>
+              <option>Entrega</option>
+              <option>Reunião</option>
+              <option>Prestador de Serviço</option>
+              <option>Auditoria</option>
+              <option>Visitante</option>
+              <option>Funcionário</option>
+              <option>Outro</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-success" style="width:100%; justify-content:center;">
+            <i class="fas fa-right-to-bracket"></i> Registrar Entrada
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lista de quem está dentro -->
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <h3><i class="fas fa-users" style="color:var(--accent)"></i> No Pátio Agora
+          <span class="badge bg-green" style="margin-left:8px" id="count-dentro">
+            {{ registros | selectattr('saida','none') | list | length }}
+          </span>
+        </h3>
+        <div style="display:flex; gap:8px;">
+          <a href="/portaria/historico" class="btn btn-ghost btn-sm"><i class="fas fa-clock-rotate-left"></i> Histórico</a>
+        </div>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Nome</th>
+                <th>Doc.</th>
+                <th>Empresa</th>
+                <th>Destino</th>
+                <th>Placa</th>
+                <th>Entrada</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+            {% for r in registros %}
+            <tr id="row-{{ r.id }}">
+              <td style="color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:11px">{{ r.id }}</td>
+              <td><strong>{{ r.nome }}</strong></td>
+              <td><span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted)">{{ r.documento or '—' }}</span></td>
+              <td>{{ r.empresa or '—' }}</td>
+              <td>{{ r.destino or '—' }}</td>
+              <td>{% if r.placa_veiculo %}<span class="badge bg-accent">{{ r.placa_veiculo }}</span>{% else %}—{% endif %}</td>
+              <td><span style="font-family:'JetBrains Mono',monospace; font-size:12px">{{ r.entrada[11:16] if r.entrada else '—' }}</span></td>
+              <td>
+                {% if r.saida %}
+                  <span class="badge bg-muted"><i class="fas fa-circle" style="font-size:6px"></i> Saiu {{ r.saida[11:16] }}</span>
+                {% else %}
+                  <span class="badge bg-green"><i class="fas fa-circle" style="font-size:6px"></i> Dentro</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if not r.saida %}
+                <button class="btn btn-danger btn-sm" onclick="registrarSaida({{ r.id }}, this)">
+                  <i class="fas fa-right-from-bracket"></i> Saída
+                </button>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function registrarSaida(id, btn) {
+  if (!confirm('Confirmar saída?')) return;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+  const r = await fetch(`/portaria/saida/${id}`, { method:'POST' });
+  const d = await r.json();
+  if (d.ok) {
+    const row = document.getElementById(`row-${id}`);
+    const hora = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+    // Atualiza badge
+    row.querySelector('td:nth-child(8)').innerHTML = `<span class="badge bg-muted"><i class="fas fa-circle" style="font-size:6px"></i> Saiu ${hora}</span>`;
+    row.querySelector('td:nth-child(9)').innerHTML = '';
+  }
+}
+</script>
+{% endblock %}

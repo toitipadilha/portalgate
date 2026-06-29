@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Master{% endblock %}
+{% block page_title %}<i class="fas fa-crown" style="color:var(--yellow)"></i> Painel Master — Toiti Sistemas{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h3><i class="fas fa-buildings" style="color:var(--accent)"></i> Empresas Cadastradas</h3>
+    <button class="btn btn-primary btn-sm" onclick="abrirModal('modal-empresa')">
+      <i class="fas fa-plus"></i> Nova Empresa
+    </button>
+  </div>
+  <div class="card-body" style="padding:0;">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Empresa</th><th>CNPJ</th><th>Plano</th><th>Postos</th><th>Usuários</th><th>Tema</th><th>Status</th><th>Ações</th></tr>
+        </thead>
+        <tbody>
+        {% for e in empresas %}
+        <tr>
+          <td style="color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:11px">{{ e.id }}</td>
+          <td><strong>{{ e.nome }}</strong></td>
+          <td style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted);">{{ e.cnpj or '—' }}</td>
+          <td>
+            {% if e.plano == 'pro' %}
+              <span class="badge bg-accent">Pro</span>
+            {% elif e.plano == 'enterprise' %}
+              <span class="badge" style="background:color-mix(in srgb,var(--yellow) 15%,transparent);color:var(--yellow);">Enterprise</span>
+            {% else %}
+              <span class="badge bg-muted">Basic</span>
+            {% endif %}
+          </td>
+          <td style="font-family:'JetBrains Mono',monospace; font-weight:600; color:var(--accent)">{{ e.n_postos }}</td>
+          <td style="font-family:'JetBrains Mono',monospace">{{ e.n_users }}</td>
+          <td>
+            <div style="width:14px;height:14px;border-radius:4px;background:{{ e.cor_primaria }};display:inline-block;vertical-align:middle;margin-right:4px;"></div>
+            <span style="font-size:11px;color:var(--muted);">{{ e.tema }}</span>
+          </td>
+          <td>
+            {% if e.ativo %}
+              <span class="badge bg-green">Ativo</span>
+            {% else %}
+              <span class="badge bg-red">Inativo</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="/dashboard?eid={{ e.id }}" class="btn btn-ghost btn-sm">
+              <i class="fas fa-eye"></i> Ver
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal nova empresa -->
+<div class="modal-overlay" id="modal-empresa">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><i class="fas fa-plus" style="color:var(--accent)"></i> Nova Empresa</h3>
+      <button class="modal-close" onclick="fecharModal('modal-empresa')">✕</button>
+    </div>
+    <form method="POST" action="/master/empresa/add">
+      <div class="section-label">Dados da Empresa</div>
+      <div class="form-grid" style="margin-bottom:14px;">
+        <div class="form-group">
+          <label>Nome da Empresa *</label>
+          <input name="nome" class="form-control" required placeholder="Segurança XYZ Ltda">
+        </div>
+        <div class="form-group">
+          <label>CNPJ</label>
+          <input name="cnpj" class="form-control" placeholder="00.000.000/0001-00">
+        </div>
+        <div class="form-group">
+          <label>Plano</label>
+          <select name="plano" class="form-control">
+            <option value="basic">Basic</option>
+            <option value="pro">Pro</option>
+            <option value="enterprise">Enterprise</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Cor Principal</label>
+          <input type="color" name="cor_primaria" class="form-control" value="#3b82f6" style="height:40px; padding:2px; cursor:pointer;">
+        </div>
+        <div class="form-group">
+          <label>Tema Padrão</label>
+          <select name="tema" class="form-control">
+            <option value="dark">🌙 Escuro</option>
+            <option value="light">☀️ Claro</option>
+          </select>
+        </div>
+      </div>
+      <div class="section-label">Usuário Supervisor</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nome do Supervisor</label>
+          <input name="nome_supervisor" class="form-control" placeholder="Fulano de Tal">
+        </div>
+        <div class="form-group">
+          <label>Login</label>
+          <input name="login_supervisor" class="form-control" placeholder="supervisor.xyz">
+        </div>
+        <div class="form-group">
+          <label>Senha</label>
+          <input name="senha_supervisor" type="password" class="form-control" placeholder="••••••••">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="fecharModal('modal-empresa')">Cancelar</button>
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Criar Empresa</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

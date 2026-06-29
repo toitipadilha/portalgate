@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Histórico Portaria{% endblock %}
+{% block page_title %}<i class="fas fa-clock-rotate-left" style="color:var(--accent);margin-right:8px"></i> Histórico de Acessos{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h3><i class="fas fa-calendar" style="color:var(--accent)"></i> Filtrar por Data</h3>
+  </div>
+  <div class="card-body">
+    <form method="GET" style="display:flex; gap:12px; align-items:flex-end;">
+      <div class="form-group" style="margin:0;">
+        <label>Data</label>
+        <input type="date" name="data" class="form-control" value="{{ data }}">
+      </div>
+      <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Buscar</button>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h3>Registros de {{ data }}</h3>
+    <span class="badge bg-accent">{{ registros|length }} registro(s)</span>
+  </div>
+  <div class="card-body" style="padding:0;">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Nome</th><th>Doc.</th><th>Empresa</th><th>Destino</th><th>Placa</th><th>Motivo</th><th>Entrada</th><th>Saída</th><th>Tempo</th></tr>
+        </thead>
+        <tbody>
+        {% for r in registros %}
+        <tr>
+          <td style="color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:11px">{{ r.id }}</td>
+          <td><strong>{{ r.nome }}</strong></td>
+          <td><span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted)">{{ r.documento or '—' }}</span></td>
+          <td>{{ r.empresa or '—' }}</td>
+          <td>{{ r.destino or '—' }}</td>
+          <td>{% if r.placa_veiculo %}<span class="badge bg-accent">{{ r.placa_veiculo }}</span>{% else %}—{% endif %}</td>
+          <td><span class="badge bg-muted">{{ r.motivo or '—' }}</span></td>
+          <td><span style="font-family:'JetBrains Mono',monospace; font-size:12px">{{ r.entrada[11:16] if r.entrada else '—' }}</span></td>
+          <td>
+            {% if r.saida %}
+              <span style="font-family:'JetBrains Mono',monospace; font-size:12px">{{ r.saida[11:16] }}</span>
+            {% else %}
+              <span class="badge bg-green">Dentro</span>
+            {% endif %}
+          </td>
+          <td style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted)">
+            {% if r.entrada and r.saida %}
+              —
+            {% elif r.entrada %}
+              Em aberto
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not registros %}
+        <tr><td colspan="10" style="text-align:center; padding:32px; color:var(--muted);">Nenhum registro para esta data.</td></tr>
+        {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

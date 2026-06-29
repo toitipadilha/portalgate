@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}<i class="fas fa-chart-line" style="color:var(--accent);margin-right:8px"></i> Dashboard{% endblock %}
+
+{% block content %}
+<div class="stat-grid">
+  <div class="stat-card blue">
+    <div class="label">Visitantes Hoje</div>
+    <div class="value" id="stat-hoje">{{ stats.visitantes_hoje }}</div>
+    <div class="sub">registros de entrada</div>
+  </div>
+  <div class="stat-card green">
+    <div class="label">Dentro Agora</div>
+    <div class="value" id="stat-dentro">{{ stats.dentro_agora }}</div>
+    <div class="sub">visitantes no pátio</div>
+  </div>
+  <div class="stat-card yellow">
+    <div class="label">Veículos Fora</div>
+    <div class="value" id="stat-frota">{{ stats.veiculos_fora }}</div>
+    <div class="sub">de {{ stats.total_veiculos }} na frota</div>
+  </div>
+  <div class="stat-card green">
+    <div class="label">Motoristas Hab.</div>
+    <div class="value">{{ stats.func_habilitados }}</div>
+    <div class="sub">com curso defensiva</div>
+  </div>
+  {% if stats.aso_vencendo > 0 %}
+  <div class="stat-card red">
+    <div class="label">ASO Vencendo</div>
+    <div class="value">{{ stats.aso_vencendo }}</div>
+    <div class="sub">próximos 30 dias</div>
+  </div>
+  {% endif %}
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+  <!-- Visitantes no pátio -->
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fas fa-person" style="color:var(--green)"></i> Visitantes no Pátio</h3>
+      <a href="/portaria" class="btn btn-ghost btn-sm">Ver portaria</a>
+    </div>
+    <div class="card-body" style="padding:0;">
+      {% if visitantes_ativos %}
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Nome</th><th>Empresa</th><th>Destino</th><th>Entrada</th></tr></thead>
+            <tbody id="tbl-visitantes">
+            {% for v in visitantes_ativos %}
+            <tr>
+              <td><strong>{{ v.nome }}</strong></td>
+              <td><span style="color:var(--muted)">{{ v.empresa or '—' }}</span></td>
+              <td>{{ v.destino or '—' }}</td>
+              <td>
+                <span class="badge bg-green">
+                  <i class="fas fa-circle" style="font-size:6px"></i>
+                  {{ v.entrada[11:16] if v.entrada else '—' }}
+                </span>
+              </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div style="padding:32px; text-align:center; color:var(--muted);">
+          <i class="fas fa-door-closed" style="font-size:32px; margin-bottom:8px; display:block;"></i>
+          Nenhum visitante no pátio
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Frota em campo -->
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fas fa-truck" style="color:var(--yellow)"></i> Frota em Campo</h3>
+      <a href="/frota" class="btn btn-ghost btn-sm">Ver frota</a>
+    </div>
+    <div class="card-body" style="padding:0;">
+      {% if frota_ativa %}
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Veículo</th><th>Motorista</th><th>Destino</th><th>Saída</th></tr></thead>
+            <tbody>
+            {% for r in frota_ativa %}
+            <tr>
+              <td>
+                <strong>{{ r.placa }}</strong>
+                <span style="color:var(--muted); display:block; font-size:11px;">{{ r.modelo }}</span>
+              </td>
+              <td>{{ r.motorista }}</td>
+              <td>{{ r.destino }}</td>
+              <td>
+                <span class="badge bg-yellow">
+                  <i class="fas fa-circle" style="font-size:6px"></i>
+                  {{ r.saida[11:16] if r.saida else '—' }}
+                </span>
+              </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div style="padding:32px; text-align:center; color:var(--muted);">
+          <i class="fas fa-garage" style="font-size:32px; margin-bottom:8px; display:block;"></i>
+          Todos os veículos na base
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto refresh stats a cada 30s
+setInterval(async () => {
+  const r = await fetch('/api/stats');
+  const d = await r.json();
+  document.getElementById('stat-hoje').textContent = d.visitantes_hoje;
+  document.getElementById('stat-dentro').textContent = d.visitantes_dentro;
+  document.getElementById('stat-frota').textContent = d.veiculos_fora;
+}, 30000);
+</script>
+{% endblock %}

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PortalGate — Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+[data-theme="dark"]{--bg:#0d0f14;--surface:#141720;--border:#252a3a;--text:#e2e8f0;--muted:#64748b;--accent:#3b82f6;--red:#ef4444;--input:#0d0f14;}
+[data-theme="light"]{--bg:#f1f5f9;--surface:#fff;--border:#e2e8f0;--text:#0f172a;--muted:#94a3b8;--accent:#3b82f6;--red:#dc2626;--input:#f8fafc;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(59,130,246,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,.04) 1px,transparent 1px);background-size:40px 40px;}
+.wrap{position:relative;z-index:1;width:400px;}
+.logo{text-align:center;margin-bottom:28px;}
+.logo-icon{width:60px;height:60px;border-radius:14px;margin:0 auto 14px;background:linear-gradient(135deg,#3b82f6,#6366f1);display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 0 40px rgba(59,130,246,.3);}
+.logo h1{font-size:22px;font-weight:700;}
+.logo p{color:var(--muted);font-size:12px;margin-top:4px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;}
+.fg{margin-bottom:14px;}
+.fg label{display:block;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;}
+.iw{position:relative;}
+.iw i{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px;}
+.fc{width:100%;background:var(--input);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:9px 11px 9px 34px;font-size:13px;font-family:inherit;transition:.12s;}
+.fc:focus{outline:none;border-color:var(--accent);}
+.btn-login{width:100%;padding:11px;background:linear-gradient(135deg,#3b82f6,#6366f1);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:.15s;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:7px;}
+.btn-login:hover{opacity:.92;}
+.alert{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--red);padding:9px 13px;border-radius:8px;font-size:12px;margin-bottom:14px;display:flex;align-items:center;gap:7px;}
+.hints{margin-top:16px;padding:12px;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:8px;}
+.hints p{font-size:11px;color:var(--muted);margin-bottom:3px;}
+.hints code{color:var(--accent);font-size:11px;}
+.footer{text-align:center;margin-top:16px;font-size:11px;color:var(--muted);}
+.theme-toggle{position:fixed;top:16px;right:16px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;cursor:pointer;color:var(--muted);font-size:12px;display:flex;align-items:center;gap:6px;z-index:10;}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<button class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-circle-half-stroke"></i> Tema</button>
+<div class="wrap">
+  <div class="logo">
+    <div class="logo-icon">🏢</div>
+    <h1>PortalGate</h1>
+    <p>Sistema de Controle de Acesso & Frota</p>
+  </div>
+  <div class="card">
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in msgs %}
+        <div class="alert"><i class="fas fa-triangle-exclamation"></i> {{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+    <form method="POST">
+      <div class="fg"><label>Usuário</label><div class="iw"><i class="fas fa-user"></i><input name="login" class="fc" placeholder="seu.login" required autofocus></div></div>
+      <div class="fg"><label>Senha</label><div class="iw"><i class="fas fa-lock"></i><input name="senha" type="password" class="fc" placeholder="••••••••" required></div></div>
+      <button type="submit" class="btn-login"><i class="fas fa-right-to-bracket"></i> Entrar</button>
+    </form>
+    <div class="hints">
+      <p>Acesso demo:</p>
+      <p><code>toiti / toiti@master</code> — Master (Toiti Sistemas)</p>
+      <p><code>supervisor1 / alpha123</code> — Supervisor Alpha</p>
+      <p><code>porteiro1 / port123</code> — Portaria Posto 1</p>
+      <p><code>seg1 / seg123</code> — Seg. Trabalho Alpha</p>
+    </div>
+  </div>
+  <div class="footer">Toiti Sistemas © 2024 — PortalGate v2.0</div>
+</div>
+<script>
+const t = localStorage.getItem('pg_tema_local');
+if(t) document.documentElement.dataset.theme=t;
+function toggleTheme(){const h=document.documentElement;const n=h.dataset.theme==='dark'?'light':'dark';h.dataset.theme=n;localStorage.setItem('pg_tema_local',n);}
+</script>
+</body></html>

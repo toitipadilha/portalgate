@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+{% block title %}Segurança do Trabalho{% endblock %}
+{% block page_title %}<i class="fas fa-hard-hat" style="color:var(--yellow);margin-right:8px"></i> Habilitações & Saúde Ocupacional{% endblock %}
+
+{% block content %}
+
+<!-- Alertas críticos -->
+{% if aso_vencidos %}
+<div class="alert alert-danger" style="margin-bottom:12px;">
+  <i class="fas fa-triangle-exclamation"></i>
+  <strong>{{ aso_vencidos|length }} ASO(s) VENCIDO(S):</strong>
+  {% for f in aso_vencidos %}{{ f.nome }}{% if not loop.last %}, {% endif %}{% endfor %}
+</div>
+{% endif %}
+{% if aso_vencendo %}
+<div class="alert alert-warning" style="margin-bottom:12px;">
+  <i class="fas fa-clock"></i>
+  <strong>{{ aso_vencendo|length }} ASO(s) vencendo em 30 dias:</strong>
+  {% for f in aso_vencendo %}{{ f.nome }} ({{ f.aso_validade }}){% if not loop.last %}, {% endif %}{% endfor %}
+</div>
+{% endif %}
+{% if cnh_vencendo %}
+<div class="alert alert-warning" style="margin-bottom:20px;">
+  <i class="fas fa-id-card"></i>
+  <strong>{{ cnh_vencendo|length }} CNH(s) vencendo em 60 dias:</strong>
+  {% for f in cnh_vencendo %}{{ f.nome }} ({{ f.cnh_validade }}){% if not loop.last %}, {% endif %}{% endfor %}
+</div>
+{% endif %}
+
+<div style="display:grid; grid-template-columns:1fr 360px; gap:20px; align-items:start;">
+
+  <!-- Tabela de funcionários -->
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fas fa-users" style="color:var(--accent)"></i> Funcionários Cadastrados</h3>
+      <button class="btn btn-primary btn-sm" onclick="abrirModal('modal-func')">
+        <i class="fas fa-plus"></i> Novo
+      </button>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Matrícula</th>
+              <th>Cargo</th>
+              <th>CNH</th>
+              <th>Validade CNH</th>
+              <th>Dir. Defensiva</th>
+              <th>Frota</th>
+              <th>ASO</th>
+              <th>NRs</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for f in funcionarios %}
+          <tr>
+            <td><strong>{{ f.nome }}</strong></td>
+            <td><span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted)">{{ f.matricula }}</span></td>
+            <td>{{ f.cargo or '—' }}</td>
+            <td>
+              {% if f.cnh %}
+                <span class="badge bg-accent">{{ f.cnh }}</span>
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if f.cnh_validade %}
+                <span style="font-family:'JetBrains Mono',monospace; font-size:12px
+                  {% if f.cnh_validade < today %} ; color:var(--red){% endif %}
+                ">{{ f.cnh_validade }}</span>
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if f.curso_defensiva %}
+                <span class="badge bg-green"><i class="fas fa-check"></i> Sim</span>
+                {% if f.data_curso %}<div style="font-size:10px; color:var(--muted); margin-top:2px;">{{ f.data_curso }}</div>{% endif %}
+              {% else %}
+                <span class="badge bg-red"><i class="fas fa-xmark"></i> Não</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if f.habilitado_frota %}
+                <span class="badge bg-green"><i class="fas fa-check"></i> Autorizado</span>
+              {% else %}
+                <span class="badge bg-muted">Não</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if f.aso_validade %}
+                {% if f.aso_validade < today %}
+                  <span class="badge bg-red"><i class="fas fa-triangle-exclamation"></i> Vencido</span>
+                {% elif f.aso_validade <= today_30 %}
+                  <span class="badge bg-yellow"><i class="fas fa-clock"></i> {{ f.aso_validade }}</span>
+                {% else %}
+                  <span class="badge bg-green"><i class="fas fa-check"></i> {{ f.aso_validade }}</span>
+                {% endif %}
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if f.nrs %}
+                {% for nr in f.nrs.split(',') %}
+                  <span class="badge bg-accent" style="margin:1px;">{{ nr.strip() }}</span>
+                {% endfor %}
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              <button class="btn btn-ghost btn-sm" onclick="editarFunc({{ f.id }})">
+                <i class="fas fa-pen"></i>
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Painel lateral de resumo -->
+  <div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-header"><h3><i class="fas fa-chart-pie" style="color:var(--accent)"></i> Resumo</h3></div>
+      <div class="card-body">
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:var(--muted); font-size:13px;">Total cadastrados</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--accent)">{{ funcionarios|length }}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:var(--muted); font-size:13px;">Habilitados frota</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--green)">
+              {{ funcionarios | selectattr('habilitado_frota') | list | length }}
+            </span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:var(--muted); font-size:13px;">Curso defensiva</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--green)">
+              {{ funcionarios | selectattr('curso_defensiva') | list | length }}
+            </span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:var(--muted); font-size:13px;">ASO vencido</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--red)">{{ aso_vencidos|length }}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:var(--muted); font-size:13px;">ASO vencendo (30d)</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--yellow)">{{ aso_vencendo|length }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h3><i class="fas fa-shield" style="color:var(--green)"></i> Legenda NRs</h3></div>
+      <div class="card-body">
+        <div style="display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--muted);">
+          <span><strong style="color:var(--text)">NR-1</strong> — Disposições Gerais</span>
+          <span><strong style="color:var(--text)">NR-5</strong> — CIPA</span>
+          <span><strong style="color:var(--text)">NR-6</strong> — EPI</span>
+          <span><strong style="color:var(--text)">NR-10</strong> — Instalações Elétricas</span>
+          <span><strong style="color:var(--text)">NR-12</strong> — Máquinas e Equipamentos</span>
+          <span><strong style="color:var(--text)">NR-17</strong> — Ergonomia</span>
+          <span><strong style="color:var(--text)">NR-35</strong> — Trabalho em Altura</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Funcionário -->
+<div class="modal-overlay" id="modal-func">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-header">
+      <h3><i class="fas fa-user-plus" style="color:var(--accent)"></i> Cadastrar / Editar Funcionário</h3>
+      <button class="modal-close" onclick="fecharModal('modal-func')">✕</button>
+    </div>
+    <form method="POST" action="/seguranca/funcionario/add">
+      <div class="form-grid" style="margin-bottom:16px;">
+        <div class="form-group">
+          <label>Nome Completo *</label>
+          <input name="nome" id="f-nome" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>Matrícula *</label>
+          <input name="matricula" id="f-matricula" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label>CPF</label>
+          <input name="cpf" id="f-cpf" class="form-control" placeholder="000.000.000-00">
+        </div>
+        <div class="form-group">
+          <label>Cargo</label>
+          <input name="cargo" id="f-cargo" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>CNH (categoria)</label>
+          <select name="cnh" id="f-cnh" class="form-control">
+            <option value="">Sem CNH</option>
+            <option>A</option><option>B</option><option>AB</option>
+            <option>C</option><option>D</option><option>E</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Validade CNH</label>
+          <input name="cnh_validade" id="f-cnh-val" type="date" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Vencimento ASO</label>
+          <input name="aso_validade" id="f-aso" type="date" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Data Curso Defensiva</label>
+          <input name="data_curso" id="f-curso" type="date" class="form-control">
+        </div>
+      </div>
+
+      <div class="section-title">Habilitações</div>
+      <div style="display:flex; gap:16px; margin-bottom:16px;">
+        <label class="check-item" style="flex:1;">
+          <input type="checkbox" name="habilitado_frota" id="f-hab-frota" value="1">
+          <span><i class="fas fa-truck" style="color:var(--accent)"></i> Autorizado a usar veículos</span>
+        </label>
+        <label class="check-item" style="flex:1;">
+          <input type="checkbox" name="curso_defensiva" id="f-curso-check" value="1">
+          <span><i class="fas fa-car" style="color:var(--green)"></i> Concluiu dir. defensiva</span>
+        </label>
+      </div>
+
+      <div class="section-title">NRs Treinadas</div>
+      <div class="checklist" style="margin-bottom:16px;">
+        <label class="check-item"><input type="checkbox" name="nrs" value="NR-1"> <span>NR-1</span></label>
+        <label class="check-item"><input type="checkbox" name="nrs" value="NR-5"> <span>NR-5 (CIPA)</span></label>
+        <label class="check-item"><input type="checkbox" name="nrs" value="NR-6"> <span>NR-6 (EPI)</span></label>
+        <label class="check-item"><input type="checkbox" name="nrs" value="NR-10"> <span>NR-10 (Elétrica)</span></label>
+        <label class="check-item"><input type="checkbox" name="nrs" value="NR-12"> <span>NR-12 (Máquinas)</span></label>
+        <label class="check-item"><input type="checkbox" name="nrs" value="NR-17"> <span>NR-17 (Ergo)</span></label>
+        <label class="check-item"><input type="checkbox" name="nrs" value="NR-35"> <span>NR-35 (Altura)</span></label>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="fecharModal('modal-func')">Cancelar</button>
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function abrirModal(id) { document.getElementById(id).classList.add('open'); }
+function fecharModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); });
+});
+
+async function editarFunc(id) {
+  const r = await fetch(`/seguranca/funcionario/${id}`);
+  const f = await r.json();
+  document.getElementById('f-nome').value = f.nome || '';
+  document.getElementById('f-matricula').value = f.matricula || '';
+  document.getElementById('f-cpf').value = f.cpf || '';
+  document.getElementById('f-cargo').value = f.cargo || '';
+  document.getElementById('f-cnh').value = f.cnh || '';
+  document.getElementById('f-cnh-val').value = f.cnh_validade || '';
+  document.getElementById('f-aso').value = f.aso_validade || '';
+  document.getElementById('f-curso').value = f.data_curso || '';
+  document.getElementById('f-hab-frota').checked = !!f.habilitado_frota;
+  document.getElementById('f-curso-check').checked = !!f.curso_defensiva;
+  // NRs
+  const nrs = (f.nrs || '').split(',').map(s=>s.trim());
+  document.querySelectorAll('input[name=nrs]').forEach(cb => {
+    cb.checked = nrs.includes(cb.value);
+  });
+  abrirModal('modal-func');
+}
+</script>
+{% endblock %}
